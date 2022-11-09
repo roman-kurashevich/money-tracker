@@ -1,5 +1,7 @@
 import { MantineTheme, MantineThemeOverride } from '@mantine/core';
 
+import { colors } from './colors';
+
 const shipTheme: MantineThemeOverride = {
   fontFamily: 'Inter, sans-serif',
   fontFamilyMonospace: 'monospace',
@@ -7,6 +9,8 @@ const shipTheme: MantineThemeOverride = {
     fontFamily: 'Inter, sans-serif',
     fontWeight: 600,
   },
+  // @ts-ignore
+  colors,
   primaryColor: 'dark',
   primaryShade: 9,
   other: {
