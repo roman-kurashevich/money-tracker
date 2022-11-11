@@ -22,6 +22,9 @@ const MainLayout: FC<MainLayoutProps> = ({ children }) => (
       main: {
         padding: '32px',
         paddingTop: '104px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
       },
     })}
   >

@@ -93,6 +93,7 @@ const Table: FC<TableProps> = ({
 
   const table = useReactTable({
     data,
+    // @ts-ignore
     columns: isSelectable ? [...selectableColumns, ...columns] : columns,
     state: {
       rowSelection,
@@ -116,6 +117,7 @@ const Table: FC<TableProps> = ({
           verticalSpacing={verticalSpacing}
         >
           <Thead
+          // @ts-ignore
             headerGroups={table.getHeaderGroups()}
             flexRender={flexRender}
           />

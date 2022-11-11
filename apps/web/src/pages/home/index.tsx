@@ -1,174 +1,127 @@
-import { ChangeEvent, useCallback, useLayoutEffect, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import Head from 'next/head';
 import { NextPage } from 'next';
 import {
-  Select,
-  TextInput,
+  Button,
   Group,
-  Title,
   Stack,
-  Skeleton,
   Text,
-  Container,
-  UnstyledButton,
-  SelectItem,
+  useMantineTheme,
 } from '@mantine/core';
-import { useDebouncedValue } from '@mantine/hooks';
-import { IconChevronDown, IconSearch, IconX } from '@tabler/icons';
-import { ColumnDef, RowSelectionState, SortingState } from '@tanstack/react-table';
 
-import { Table } from 'components';
-import { User, userApi } from 'resources/user';
+import { TransactionModal } from 'components';
+import Transaction from 'components/Transaction';
 
-interface UsersListParams {
-  page?: number;
-  perPage?: number;
-  searchValue?: string;
-  sort?: {
-    createdOn: number;
-  };
-}
+import { TransactionType } from 'types';
 
-const selectOptions: SelectItem[] = [
-  {
-    value: 'newest',
-    label: 'Newest',
-  },
-  {
-    value: 'oldest',
-    label: 'Oldest',
-  },
-];
-
-const columns: ColumnDef<User>[] = [
-  {
-    accessorKey: 'firstName',
-    header: 'First Name',
-    cell: (info) => info.getValue(),
-  },
-  {
-    accessorKey: 'lastName',
-    header: 'Last Name',
-    cell: (info) => info.getValue(),
-  },
-  {
-    accessorKey: 'email',
-    header: 'Email',
-    cell: (info) => info.getValue(),
-  },
-];
-
-const PER_PAGE = 5;
+import { useStyles } from './styles';
 
 const Home: NextPage = () => {
-  const [search, setSearch] = useState('');
-  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [sortBy, setSortBy] = useState(selectOptions[0].value);
+  const [isOpenModal, setIsOpenModal] = useState<boolean>(false);
+  const [transactionList, setTransactionList] = useState<TransactionType[]>([]);
+  const [sortCategory, setSortCategory] = useState<[string, string]>(['date', 'asc']);
 
-  const [params, setParams] = useState<UsersListParams>({});
+  const { classes } = useStyles();
 
-  const [debouncedSearch] = useDebouncedValue(search, 500);
+  const { colors } = useMantineTheme();
 
-  const handleSort = useCallback((value: string) => {
-    setSortBy(value);
-    setParams((prev) => ({
-      ...prev,
-      sort: value === 'newest' ? { createdOn: -1 } : { createdOn: 1 },
-    }));
-  }, []);
+  console.log('RENDER HOME');
 
-  const handleSearch = useCallback((event: ChangeEvent<HTMLInputElement>) => {
-    setSearch(event.target.value);
-  }, []);
+  const addNewTransition = ({ id, category, amount, note, date, createdAt }: TransactionType) => {
+    const newTransaction = {
+      id,
+      category,
+      amount,
+      note,
+      date,
+      createdAt,
+    };
 
-  useLayoutEffect(() => {
-    setParams((prev) => ({ ...prev, page: 1, searchValue: debouncedSearch, perPage: PER_PAGE }));
-  }, [debouncedSearch]);
+    setTransactionList([...transactionList, newTransaction]);
+  };
 
-  const { data, isLoading: isListLoading } = userApi.useList(params);
+  const totalAmount = useMemo(
+    () => transactionList.reduce((total, item) => total + item.amount, 0),
+    [transactionList],
+  );
+
+  const deleteTransaction = useCallback((id: string) => {
+    setTransactionList(transactionList.filter((transaction) => transaction.id !== id));
+  }, [transactionList]);
+
+  const sortType = (category: string) => {
+    if (sortCategory[0] === category) {
+      if (sortCategory[1] === 'asc') {
+        setSortCategory(() => [category, 'desc']);
+      }
+      if (sortCategory[1] === 'desc') {
+        setSortCategory(() => [category, 'asc']);
+      }
+    }
+    if (sortCategory[0] !== category) {
+      setSortCategory(() => [category, 'asc']);
+    }
+    // sort();
+  };
+
+  const sortedTransactionList = useMemo(() => {
+    const copyTransactionList = transactionList.concat();
+    copyTransactionList
+      .sort((a: TransactionType, b: TransactionType) => {
+        // @ts-ignore
+        if (a[sortCategory[0]] > b[sortCategory[0]]) {
+          return sortCategory[1] === 'asc' ? 1 : -1;
+        }
+        // @ts-ignore
+        if (a[sortCategory[0]] < b[sortCategory[0]]) {
+          return sortCategory[1] === 'asc' ? -1 : 1;
+        }
+
+        return 0;
+      });
+
+    return copyTransactionList;
+  }, [sortCategory, transactionList]);
 
   return (
     <>
       <Head>
         <title>Home</title>
       </Head>
-      <Stack spacing="lg">
-        <Title order={2}>Users</Title>
-        <Group position="apart">
-          <Skeleton
-            height={42}
-            radius="sm"
-            visible={isListLoading}
-            width="auto"
-            sx={{ flexGrow: 0.25 }}
-          >
-            <TextInput
-              value={search}
-              onChange={handleSearch}
-              placeholder="Search by name or email"
-              icon={<IconSearch size={16} />}
-              rightSection={search ? (
-                <UnstyledButton
-                  onClick={() => setSearch('')}
-                  sx={{ display: 'flex', alignItems: 'center' }}
-                >
-                  <IconX color="gray" />
-                </UnstyledButton>
-              ) : null}
-            />
-          </Skeleton>
-          <Skeleton
-            height={42}
-            radius="sm"
-            visible={isListLoading}
-            width="auto"
-            sx={{ overflow: !isListLoading ? 'initial' : 'overflow' }}
-          >
-            <Select
-              data={selectOptions}
-              value={sortBy}
-              onChange={handleSort}
-              rightSection={<IconChevronDown size={16} />}
-              withinPortal={false}
-              transition="pop-bottom-right"
-              transitionDuration={210}
-              transitionTimingFunction="ease-out"
-            />
-          </Skeleton>
+
+      <Stack className={classes.main}>
+        <Group position="apart" className={classes.header}>
+          <Button className={classes.button} onClick={() => setIsOpenModal(true)}>+</Button>
+
+          <Stack spacing={0} align="flex-end">
+            <Text size="sm">TOTAL AMOUNT</Text>
+            <Text size="lg" color={colors.orange[6]}>{totalAmount}</Text>
+          </Stack>
         </Group>
-        {isListLoading && (
-        <>
-          {[1, 2, 3].map((item) => (
-            <Skeleton
-              key={`sklton-${String(item)}`}
-              height={50}
-              radius="sm"
-              mb="sm"
-            />
-          ))}
-        </>
-        )}
-        {data?.items.length ? (
-          <Table
-            columns={columns}
-            data={data.items}
-            dataCount={data.count}
-            rowSelection={rowSelection}
-            setRowSelection={setRowSelection}
-            sorting={sorting}
-            onSortingChange={setSorting}
-            onPageChange={setParams}
-            perPage={PER_PAGE}
+
+        <Group className={classes.filtersContainer}>
+          <Button className={classes.button} onClick={() => sortType('date')}>date</Button>
+          <Button className={classes.button} onClick={() => sortType('amount')}>amount</Button>
+          <Button className={classes.button} onClick={() => sortType('category')}>category</Button>
+        </Group>
+
+        {sortedTransactionList.map((transaction) => (
+          <Transaction
+            key={transaction.id}
+            id={transaction.id}
+            category={transaction.category}
+            date={transaction.date}
+            amount={transaction.amount}
+            deleteTransaction={deleteTransaction}
           />
-        ) : (
-          <Container p={75}>
-            <Text size="xl" color="grey">
-              No results found, try to adjust your search.
-            </Text>
-          </Container>
-        )}
+        ))}
       </Stack>
+
+      <TransactionModal
+        opened={isOpenModal}
+        setIsOpenModal={setIsOpenModal}
+        addNewTransition={addNewTransition}
+      />
     </>
   );
 };

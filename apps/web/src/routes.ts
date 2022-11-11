@@ -33,7 +33,7 @@ type RoutesConfiguration = {
 export const routesConfiguration: RoutesConfiguration = {
   // Private routes
   [RoutePath.Home]: {
-    scope: ScopeType.PRIVATE,
+    scope: ScopeType.PUBLIC,
     layout: LayoutType.MAIN,
   },
   [RoutePath.Profile]: {
